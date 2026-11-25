@@ -45,7 +45,7 @@ Alternative to betterstack.com
 ### 2. Google Spreadsheet Setup
 Create a Google Spreadsheet with 4 tabs:
 1. **`Services`**: Headers: `id`, `checkUrl`, `method`, `intervalMinutes`, `timeoutMs`, `expectedStatus`, `expectedJson`, `displayName`, `publicUrl`, `recipients`
-2. **`FeatureFlags`**: Headers: `key`, `value`, `comment` (keys: `ENABLE_BCC`, `IS_TESTING`, `ALERT_DOWN_TEMPLATE`, `ALERT_RESTORED_TEMPLATE`)
+2. **`FeatureFlags`**: Headers: `key`, `value`, `comment` (keys: `ENABLE_BCC`, `IS_TESTING`, `REPLY_TO`, `ALERT_DOWN_TEMPLATE`, `ALERT_RESTORED_TEMPLATE`)
 3. **`BCC`**: Header: `email`
 4. **`Incidents`**: Headers: `incidentId`, `serviceId`, `displayName`, `downAt`, `upAt`, `durationMinutes`, `reason`
 

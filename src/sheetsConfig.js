@@ -104,6 +104,7 @@ async function fetchConfigFromSheets() {
   const featureFlags = {
     enableBcc: parseBoolean(flagsMap.ENABLE_BCC, false),
     isTesting: parseBoolean(flagsMap.IS_TESTING, false),
+    replyTo: flagsMap.REPLY_TO || '',
     alertDownTemplate: flagsMap.ALERT_DOWN_TEMPLATE || '',
     alertRestoredTemplate: flagsMap.ALERT_RESTORED_TEMPLATE || '',
   };
@@ -118,6 +119,7 @@ async function fetchConfigFromSheets() {
     serviceCount: services.length,
     enableBcc: featureFlags.enableBcc,
     isTesting: featureFlags.isTesting,
+    replyTo: featureFlags.replyTo || null,
     bccCount: bccList.length,
     hasDownTemplate: Boolean(featureFlags.alertDownTemplate),
     hasRestoredTemplate: Boolean(featureFlags.alertRestoredTemplate),

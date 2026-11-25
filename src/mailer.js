@@ -38,11 +38,12 @@ function resolveRecipients({ serviceRecipients = [], bccList = [], enableBcc, is
 /**
  * Builds a base64url-encoded RFC 2822 MIME message.
  */
-function buildRawMimeMessage({ from, to, bcc, subject, html }) {
+function buildRawMimeMessage({ from, to, bcc, replyTo, subject, html }) {
   const headers = [
     `From: ${from}`,
     to.length > 0 ? `To: ${to.join(', ')}` : `To: ${from}`,
     bcc.length > 0 ? `Bcc: ${bcc.join(', ')}` : null,
+    replyTo ? `Reply-To: ${replyTo}` : null,
     `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=utf-8',
@@ -95,7 +96,14 @@ async function sendEmail({ service, subject, html, featureFlags, bccList }) {
 
   const auth = getAuthClient();
   const gmail = google.gmail({ version: 'v1', auth });
-  const raw = buildRawMimeMessage({ from: sender, to, bcc, subject, html });
+  const raw = buildRawMimeMessage({
+    from: sender,
+    to,
+    bcc,
+    replyTo: featureFlags.replyTo,
+    subject,
+    html,
+  });
 
   await gmail.users.messages.send({
     userId: 'me',
