@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 
-const PORT = 3000;
+const PORT = Number(process.env.OAUTH_PORT || process.env.PORT) || 3000;
 const REDIRECT_URI = `http://localhost:${PORT}/oauth2callback`;
 const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',

@@ -32,7 +32,7 @@ Alternative to betterstack.com
 4. **Create OAuth2 Client ID**:
    - Go to **APIs & Services > Credentials > Create Credentials > OAuth client ID**.
    - Select **Web application**.
-   - Add `http://localhost:3000/oauth2callback` to **Authorized redirect URIs**.
+   - Add `http://localhost:<OAUTH_PORT>/oauth2callback` (default `http://localhost:3000/oauth2callback`) to **Authorized redirect URIs**.
    - Copy the **Client ID** and **Client Secret** into your `.env` file (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
 5. **Generate a Refresh Token (Automated)**:
    - Run:
