@@ -5,9 +5,16 @@ const logger = require('./logger');
 /**
  * Computes final To and Bcc lists respecting IS_TESTING, ENABLE_BCC, and deduplication.
  */
-function resolveRecipients({ serviceRecipients = [], bccList = [], enableBcc, isTesting }) {
+function resolveRecipients({ serviceRecipients = [], bccList = [], enableBcc, isTesting, excludeBcc = false }) {
   const normalizedTo = serviceRecipients.map((e) => e.trim()).filter(Boolean);
   const toSet = new Set(normalizedTo.map((e) => e.toLowerCase()));
+
+  if (excludeBcc) {
+    return {
+      to: normalizedTo,
+      bcc: [],
+    };
+  }
 
   if (isTesting) {
     // In testing mode, ONLY BCC recipients receive the email; To recipients are skipped.
@@ -64,7 +71,7 @@ function buildRawMimeMessage({ from, to, bcc, replyTo, subject, html }) {
 /**
  * Sends an HTML email via the Gmail API.
  */
-async function sendEmail({ service, subject, html, featureFlags, bccList }) {
+async function sendEmail({ service, subject, html, featureFlags, bccList, excludeBcc = false }) {
   const sender = process.env.GMAIL_SENDER;
   if (!sender) {
     throw new Error('Missing GMAIL_SENDER in environment variables');
@@ -75,6 +82,7 @@ async function sendEmail({ service, subject, html, featureFlags, bccList }) {
     bccList,
     enableBcc: featureFlags.enableBcc,
     isTesting: featureFlags.isTesting,
+    excludeBcc,
   });
 
   if (to.length === 0 && bcc.length === 0) {

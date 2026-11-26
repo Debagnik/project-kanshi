@@ -60,14 +60,20 @@ async function fetchConfigFromSheets() {
   const services = rawServices
     .filter((s) => s.id && s.checkUrl)
     .map((s) => {
-      let expectedJson = null;
-      if (s.expectedJson) {
-        try {
-          expectedJson = JSON.parse(s.expectedJson);
-        } catch (err) {
-          logger.warn('SheetsConfig', `Invalid expectedJson for service "${s.id}", ignoring JSON contract`, {
-            error: err.message,
-          });
+      const rawExpected = s.expectedResponse || s.expectedJson || '';
+      let expectedResponse = null;
+      if (rawExpected) {
+        if (rawExpected.startsWith('{') || rawExpected.startsWith('[')) {
+          try {
+            expectedResponse = JSON.parse(rawExpected);
+          } catch (err) {
+            logger.warn('SheetsConfig', `Malformed JSON in expectedResponse for "${s.id}", treating as plain text`, {
+              error: err.message,
+            });
+            expectedResponse = rawExpected;
+          }
+        } else {
+          expectedResponse = rawExpected;
         }
       }
 
@@ -85,7 +91,7 @@ async function fetchConfigFromSheets() {
         intervalMinutes: Number(s.intervalMinutes) > 0 ? Number(s.intervalMinutes) : 5,
         timeoutMs: Number(s.timeoutMs) > 0 ? Number(s.timeoutMs) : 5000,
         expectedStatus: Number(s.expectedStatus) > 0 ? Number(s.expectedStatus) : 200,
-        expectedJson,
+        expectedResponse,
         displayName: s.displayName || s.id,
         publicUrl: s.publicUrl || s.checkUrl,
         recipients,
@@ -104,9 +110,11 @@ async function fetchConfigFromSheets() {
   const featureFlags = {
     enableBcc: parseBoolean(flagsMap.ENABLE_BCC, false),
     isTesting: parseBoolean(flagsMap.IS_TESTING, false),
+    enableWarningEmail: parseBoolean(flagsMap.ENABLE_WARNING_EMAIL, false),
     replyTo: flagsMap.REPLY_TO || '',
     alertDownTemplate: flagsMap.ALERT_DOWN_TEMPLATE || '',
     alertRestoredTemplate: flagsMap.ALERT_RESTORED_TEMPLATE || '',
+    alertWarningTemplate: flagsMap.ALERT_WARNING_TEMPLATE || '',
   };
 
   // 3. Parse BCC list (skip header row if present)

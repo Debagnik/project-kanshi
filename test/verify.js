@@ -28,6 +28,43 @@ async function runTests() {
   assert.deepStrictEqual(resTesting.to, []);
   assert.deepStrictEqual(resTesting.bcc, ['charlie@example.com', 'alice@example.com']);
 
+  // 2b. Test resolveRecipients: excludeBcc=true (warning emails go only to To, never BCC)
+  const resWarning = resolveRecipients({
+    serviceRecipients: ['alice@example.com'],
+    bccList: ['charlie@example.com'],
+    enableBcc: true,
+    isTesting: true,
+    excludeBcc: true,
+  });
+  assert.deepStrictEqual(resWarning.to, ['alice@example.com']);
+  assert.deepStrictEqual(resWarning.bcc, []);
+
+  // 2c. Test plain-text, regex, and wildcard JSON validation
+  const plainOk = validateResponse(
+    { expectedStatus: 200, expectedResponse: 'Healthy' },
+    { ok: true, status: 200, data: 'Healthy\n', error: null }
+  );
+  assert.strictEqual(plainOk.healthy, true);
+
+  const regexOk = validateResponse(
+    { expectedStatus: 200, expectedResponse: 'regex:^v\\d+\\.\\d+\\.\\d+$' },
+    { ok: true, status: 200, data: 'v5.3.0', error: null }
+  );
+  assert.strictEqual(regexOk.healthy, true);
+
+  const wildcardOk = validateResponse(
+    { expectedStatus: 200, expectedResponse: { status: 'ok', timestamp: '*', uptimeSeconds: '*' } },
+    { ok: true, status: 200, data: { status: 'ok', timestamp: '2026-11-26T02:33:56Z', uptimeSeconds: 123.4, extra: true }, error: null }
+  );
+  assert.strictEqual(wildcardOk.healthy, true);
+
+  const warnMismatch = validateResponse(
+    { expectedStatus: 200, expectedResponse: 'Healthy' },
+    { ok: true, status: 200, data: 'Degraded', error: null }
+  );
+  assert.strictEqual(warnMismatch.healthy, false);
+  assert.strictEqual(warnMismatch.isWarning, true);
+
   // 3. Test template rendering
   const html = renderTemplate('', {
     displayName: 'Auth Portal',

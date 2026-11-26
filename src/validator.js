@@ -1,9 +1,27 @@
 /**
  * Recursively checks that every key/value in `expected` exists and matches in `actual`.
- * Returns an array of human-readable mismatch descriptions.
+ * Supports `"*"` (any non-null/defined value) and `"regex:<pattern>"`.
  */
 function matchPartialJson(expected, actual, path = '') {
   const mismatches = [];
+
+  if (expected === '*') {
+    if (actual === undefined || actual === null) {
+      mismatches.push(`Missing/null value at "${path || 'root'}" (expected any non-null value)`);
+    }
+    return mismatches;
+  }
+
+  if (typeof expected === 'string' && expected.startsWith('regex:')) {
+    const pattern = expected.slice('regex:'.length);
+    const re = new RegExp(pattern);
+    if (!re.test(String(actual ?? ''))) {
+      mismatches.push(
+        `Regex mismatch at "${path || 'root'}": "${actual}" did not match /${pattern}/`
+      );
+    }
+    return mismatches;
+  }
 
   if (expected === null || typeof expected !== 'object') {
     if (expected !== actual) {
@@ -46,13 +64,14 @@ function matchPartialJson(expected, actual, path = '') {
 }
 
 /**
- * Validates the HTTP response against the service's expectedStatus and expectedJson.
- * Returns { healthy: boolean, reason: string }.
+ * Validates the HTTP response against expectedStatus and expectedResponse.
+ * Returns { healthy: boolean, isWarning: boolean, reason: string }.
  */
 function validateResponse(service, result) {
   if (!result.ok) {
     return {
       healthy: false,
+      isWarning: false,
       reason: `Network/request error: ${result.error}`,
     };
   }
@@ -60,21 +79,51 @@ function validateResponse(service, result) {
   if (result.status !== service.expectedStatus) {
     return {
       healthy: false,
+      isWarning: false,
       reason: `HTTP status mismatch: expected ${service.expectedStatus}, got ${result.status}`,
     };
   }
 
-  if (service.expectedJson !== null && service.expectedJson !== undefined) {
-    const mismatches = matchPartialJson(service.expectedJson, result.data);
-    if (mismatches.length > 0) {
-      return {
-        healthy: false,
-        reason: mismatches.join('; '),
-      };
+  const expected = service.expectedResponse !== undefined ? service.expectedResponse : service.expectedJson;
+
+  if (expected !== null && expected !== undefined && expected !== '') {
+    if (typeof expected === 'string') {
+      const actualStr =
+        typeof result.data === 'string'
+          ? result.data.trim()
+          : result.data !== null && result.data !== undefined
+            ? JSON.stringify(result.data)
+            : '';
+
+      if (expected.startsWith('regex:')) {
+        const pattern = expected.slice('regex:'.length);
+        if (!new RegExp(pattern).test(actualStr)) {
+          return {
+            healthy: false,
+            isWarning: true,
+            reason: `Response text mismatch: "${actualStr}" did not match /${pattern}/`,
+          };
+        }
+      } else if (actualStr !== expected.trim()) {
+        return {
+          healthy: false,
+          isWarning: true,
+          reason: `Response text mismatch: expected "${expected.trim()}", got "${actualStr}"`,
+        };
+      }
+    } else {
+      const mismatches = matchPartialJson(expected, result.data);
+      if (mismatches.length > 0) {
+        return {
+          healthy: false,
+          isWarning: true,
+          reason: mismatches.join('; '),
+        };
+      }
     }
   }
 
-  return { healthy: true, reason: 'OK' };
+  return { healthy: true, isWarning: false, reason: 'OK' };
 }
 
 module.exports = { validateResponse, matchPartialJson };

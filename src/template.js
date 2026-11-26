@@ -44,6 +44,24 @@ const DEFAULT_RESTORED_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+const DEFAULT_WARNING_TEMPLATE = `<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#000000; padding:24px; color:#f3f4f6;">
+  <div style="max-width:600px; margin:0 auto; background:#111111; border-radius:8px; overflow:hidden; border:1px solid #262626;">
+    <div style="background:#d97706; color:#ffffff; padding:16px 24px;">
+      <span style="display:inline-block; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:4px; font-size:12px; font-weight:700;">WARNING</span>
+      <h2 style="margin:8px 0 0 0; font-size:20px;">{{displayName}}</h2>
+    </div>
+    <div style="padding:24px;">
+      <p style="margin-top:0;"><strong>{{displayName}}</strong> (<a href="{{publicUrl}}" style="color:#da532c;">{{publicUrl}}</a>) returned HTTP {{actualStatus}}, but the response did not match the expected contract.</p>
+      <p><strong>Reason:</strong> {{reason}}</p>
+      <p style="font-size:13px; color:#9ca3af;">Expected: <pre style="background:#18181b; padding:10px; border-radius:6px;">{{expectedResponse}}</pre></p>
+      <p style="font-size:13px; color:#9ca3af;">Actual: <pre style="background:#1c1917; padding:10px; border-radius:6px;">{{actualResponse}}</pre></p>
+    </div>
+  </div>
+</body>
+</html>`;
+
 /**
  * Replaces {{key}} placeholders in a template string.
  */
@@ -53,7 +71,9 @@ function renderTemplate(templateStr, variables, fallbackType = 'down') {
       ? templateStr
       : fallbackType === 'restored'
         ? DEFAULT_RESTORED_TEMPLATE
-        : DEFAULT_DOWN_TEMPLATE;
+        : fallbackType === 'warning'
+          ? DEFAULT_WARNING_TEMPLATE
+          : DEFAULT_DOWN_TEMPLATE;
 
   return base.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     return variables[key] !== undefined && variables[key] !== null
@@ -62,4 +82,4 @@ function renderTemplate(templateStr, variables, fallbackType = 'down') {
   });
 }
 
-module.exports = { renderTemplate, DEFAULT_DOWN_TEMPLATE, DEFAULT_RESTORED_TEMPLATE };
+module.exports = { renderTemplate, DEFAULT_DOWN_TEMPLATE, DEFAULT_RESTORED_TEMPLATE, DEFAULT_WARNING_TEMPLATE };

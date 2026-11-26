@@ -119,6 +119,55 @@ class MonitorScheduler {
 
         this.states.set(serviceId, { status: 'UP', downSince: null, incidentId: null });
       }
+    } else if (validation.isWarning) {
+      logger.warn('Check', `Service "${service.id}" WARNING: status ${result.status} matched, but response did not`, {
+        reason: validation.reason,
+      });
+
+      if (this.config.featureFlags.enableWarningEmail) {
+        const now = new Date();
+        const expectedFormatted =
+          service.expectedResponse !== null && service.expectedResponse !== undefined
+            ? typeof service.expectedResponse === 'object'
+              ? JSON.stringify(service.expectedResponse, null, 2)
+              : String(service.expectedResponse)
+            : 'None';
+
+        const html = renderTemplate(
+          this.config.featureFlags.alertWarningTemplate,
+          {
+            displayName: service.displayName,
+            publicUrl: service.publicUrl,
+            timestamp: now.toISOString(),
+            reason: validation.reason,
+            expectedStatus: service.expectedStatus,
+            actualStatus: result.status,
+            expectedResponse: expectedFormatted,
+            actualResponse:
+              result.data !== null && result.data !== undefined
+                ? typeof result.data === 'object'
+                  ? JSON.stringify(result.data, null, 2)
+                  : String(result.data)
+                : 'No response body',
+          },
+          'warning'
+        );
+
+        try {
+          await sendEmail({
+            service,
+            subject: `[WARNING] ${service.displayName} response mismatch`,
+            html,
+            featureFlags: this.config.featureFlags,
+            bccList: this.config.bccList,
+            excludeBcc: true,
+          });
+        } catch (err) {
+          logger.error('Mailer', `Failed to send WARNING email for "${service.id}"`, {
+            error: err.message,
+          });
+        }
+      }
     } else {
       logger.warn('Check', `Service "${service.id}" FAILED health check`, {
         reason: validation.reason,
