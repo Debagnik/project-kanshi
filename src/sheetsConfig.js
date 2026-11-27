@@ -95,6 +95,8 @@ async function fetchConfigFromSheets() {
         displayName: s.displayName || s.id,
         publicUrl: s.publicUrl || s.checkUrl,
         recipients,
+        description: s.description || '',
+        isActive: s.isActive === '' || s.isActive === undefined ? true : parseBoolean(s.isActive, true),
       };
     });
 
@@ -111,6 +113,7 @@ async function fetchConfigFromSheets() {
     enableBcc: parseBoolean(flagsMap.ENABLE_BCC, false),
     isTesting: parseBoolean(flagsMap.IS_TESTING, false),
     enableWarningEmail: parseBoolean(flagsMap.ENABLE_WARNING_EMAIL, false),
+    restoreStateFromStatus: parseBoolean(flagsMap.RESTORE_STATE_FROM_STATUS, false),
     replyTo: flagsMap.REPLY_TO || '',
     alertDownTemplate: flagsMap.ALERT_DOWN_TEMPLATE || '',
     alertRestoredTemplate: flagsMap.ALERT_RESTORED_TEMPLATE || '',

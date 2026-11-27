@@ -69,9 +69,11 @@ async function runTests() {
   const html = renderTemplate('', {
     displayName: 'Auth Portal',
     publicUrl: 'https://auth.example.com',
+    description: 'Users cannot log in.',
     reason: 'HTTP status mismatch',
   }, 'down');
   assert(html.includes('Auth Portal'));
+  assert(html.includes('Users cannot log in.'));
   assert(html.includes('HTTP status mismatch'));
 
   // 4. Test MIME builder

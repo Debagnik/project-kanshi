@@ -1,4 +1,4 @@
-# kanshi
+# project-kanshi
 
 Lightweight Raspberry Pi health-check monitor powered by Node.js, Google Sheets, and Gmail API (`googleapis`).
 
@@ -43,11 +43,17 @@ Alternative to betterstack.com
    - The script will automatically catch the callback and save `GOOGLE_REFRESH_TOKEN` to `.env`.
 
 ### 2. Google Spreadsheet Setup
-Create a Google Spreadsheet with 4 tabs:
-1. **`Services`**: Headers: `id`, `checkUrl`, `method`, `intervalMinutes`, `timeoutMs`, `expectedStatus`, `expectedJson`, `displayName`, `publicUrl`, `recipients`
-2. **`FeatureFlags`**: Headers: `key`, `value`, `comment` (keys: `ENABLE_BCC`, `IS_TESTING`, `REPLY_TO`, `ALERT_DOWN_TEMPLATE`, `ALERT_RESTORED_TEMPLATE`)
+> **Quick Start:** You can import the included `KanshiServer_GoogleSheets_Template.ods` template file directly into Google Sheets (**File > Import > Upload**) to get all 5 tabs and headers pre-configured.
+
+Create a Google Spreadsheet with 5 tabs:
+1. **`Services`**: Headers: `id`, `checkUrl`, `method`, `intervalMinutes`, `timeoutMs`, `expectedStatus`, `expectedResponse`, `displayName`, `publicUrl`, `recipients`, `description`, `isActive`
+   - `expectedResponse`: Supports JSON (with `"*"` wildcards and `"regex:<pattern>"`), plain text (e.g. `Healthy`), or `regex:...`.
+   - `description`: Explains what part of the service is impacted when down (used in `{{description}}`).
+   - `isActive`: `true` / `false` (defaults to `true`; `false` pauses monitoring and marks the service `INACTIVE` in `STATUS`).
+2. **`FeatureFlags`**: Headers: `key`, `value`, `comment` (keys: `ENABLE_BCC`, `IS_TESTING`, `ENABLE_WARNING_EMAIL`, `RESTORE_STATE_FROM_STATUS`, `REPLY_TO`, `ALERT_DOWN_TEMPLATE`, `ALERT_RESTORED_TEMPLATE`, `ALERT_WARNING_TEMPLATE`)
 3. **`BCC`**: Header: `email`
 4. **`Incidents`**: Headers: `incidentId`, `serviceId`, `displayName`, `downAt`, `upAt`, `durationMinutes`, `reason`
+5. **`STATUS`**: Headers: `id`, `status`, `lastChecked` (automatically updated with `UP`, `DEGRADED`, `DOWN`, or `INACTIVE` and Unix epoch timestamp)
 
 Copy the Spreadsheet ID from the URL (`https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit`).
 
