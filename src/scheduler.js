@@ -3,6 +3,7 @@ const { validateResponse } = require('./validator');
 const { renderTemplate } = require('./template');
 const { sendEmail } = require('./mailer');
 const { recordIncidentDown, recordIncidentUp } = require('./sheetsIncidents');
+const { fetchAllStatuses, updateServiceStatus } = require('./sheetsStatus');
 const logger = require('./logger');
 
 function formatDuration(ms) {
@@ -19,23 +20,55 @@ class MonitorScheduler {
     this.states = new Map(); // serviceId -> { status: 'UP'|'DOWN', downSince: Date|null, incidentId: string|null }
     this.config = { services: [], featureFlags: {}, bccList: [] };
     this.stopped = false;
+    this.initialized = false;
   }
 
-  updateConfig(newConfig) {
+  async updateConfig(newConfig) {
     this.config = newConfig;
-    const activeIds = new Set(newConfig.services.map((s) => s.id));
 
-    // Clear timers for removed services
+    if (!this.initialized) {
+      this.initialized = true;
+      if (newConfig.featureFlags.restoreStateFromStatus) {
+        const savedStatuses = await fetchAllStatuses();
+        for (const [id, info] of savedStatuses.entries()) {
+          if (info.status === 'DOWN') {
+            this.states.set(id, {
+              status: 'DOWN',
+              downSince: info.lastCheckedEpoch ? new Date(info.lastCheckedEpoch * 1000) : new Date(),
+              incidentId: null,
+            });
+          } else {
+            this.states.set(id, { status: 'UP', downSince: null, incidentId: null });
+          }
+        }
+      }
+    }
+
+    const activeIds = new Set(
+      newConfig.services.filter((s) => s.isActive).map((s) => s.id)
+    );
+
+    // Clear timers for removed or inactive services
     for (const [id, timer] of this.timers.entries()) {
       if (!activeIds.has(id)) {
         clearTimeout(timer);
         this.timers.delete(id);
-        logger.info('Scheduler', `Stopped monitoring removed service "${id}"`);
+        logger.info('Scheduler', `Stopped monitoring service "${id}"`);
       }
     }
 
-    // Start timers for newly added services
+    // Handle inactive services & start timers for active services
+    const nowEpoch = Math.floor(Date.now() / 1000);
     for (const service of newConfig.services) {
+      if (!service.isActive) {
+        await updateServiceStatus({
+          serviceId: service.id,
+          status: 'INACTIVE',
+          lastCheckedEpoch: nowEpoch,
+        });
+        continue;
+      }
+
       if (!this.timers.has(service.id)) {
         if (!this.states.has(service.id)) {
           this.states.set(service.id, { status: 'UP', downSince: null, incidentId: null });
@@ -64,6 +97,14 @@ class MonitorScheduler {
     const state = this.states.get(serviceId) || { status: 'UP', downSince: null, incidentId: null };
     const result = await checkEndpoint(service);
     const validation = validateResponse(service, result);
+    const lastCheckedEpoch = Math.floor(Date.now() / 1000);
+    const currentStatus = validation.healthy ? 'UP' : validation.isWarning ? 'DEGRADED' : 'DOWN';
+
+    await updateServiceStatus({
+      serviceId: service.id,
+      status: currentStatus,
+      lastCheckedEpoch,
+    });
 
     if (validation.healthy) {
       logger.info('Check', `Service "${service.id}" is UP`, {
@@ -198,12 +239,15 @@ class MonitorScheduler {
           {
             displayName: service.displayName,
             publicUrl: service.publicUrl,
+            description: service.description || 'No description provided.',
             timestamp: downAt.toISOString(),
             reason: validation.reason,
             expectedStatus: service.expectedStatus,
             actualStatus: result.status !== null ? result.status : 'N/A (Network Error)',
-            expectedJson: service.expectedJson
-              ? JSON.stringify(service.expectedJson, null, 2)
+            expectedJson: service.expectedResponse
+              ? typeof service.expectedResponse === 'object'
+                ? JSON.stringify(service.expectedResponse, null, 2)
+                : String(service.expectedResponse)
               : 'None',
             actualResponse:
               result.data !== null && result.data !== undefined

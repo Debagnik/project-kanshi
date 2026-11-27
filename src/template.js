@@ -8,6 +8,7 @@ const DEFAULT_DOWN_TEMPLATE = `<!DOCTYPE html>
     </div>
     <div style="padding:24px;">
       <p style="margin-top:0;">The health check for <strong>{{displayName}}</strong> (<a href="{{publicUrl}}">{{publicUrl}}</a>) has failed.</p>
+      <p style="background:#18181b; padding:12px; border-left:3px solid #da532c; border-radius:4px;"><strong>Impact / Description:</strong> {{description}}</p>
       <table style="width:100%; border-collapse:collapse; margin:16px 0; font-size:14px;">
         <tr><td style="padding:8px; border-bottom:1px solid #e5e7eb; color:#6b7280;">Timestamp</td><td style="padding:8px; border-bottom:1px solid #e5e7eb;">{{timestamp}}</td></tr>
         <tr><td style="padding:8px; border-bottom:1px solid #e5e7eb; color:#6b7280;">Reason</td><td style="padding:8px; border-bottom:1px solid #e5e7eb; color:#dc2626; font-weight:600;">{{reason}}</td></tr>
